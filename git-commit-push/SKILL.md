@@ -16,6 +16,23 @@ Activate when the user:
 - Completes a feature and wants to share it
 - Says phrases like "let's push this up" or "commit these changes"
 
+## Pre-flight: No Git Repo Yet
+
+If the directory has no `.git` folder, set one up before running the script:
+
+1. **Create the remote repo** (adjust name/visibility as needed):
+   ```bash
+   gh repo create <repo-name> --private --confirm
+   ```
+
+2. **Init locally and link with HTTPS** (prefer HTTPS — SSH often fails behind VPNs/corporate networks):
+   ```bash
+   git init
+   git remote add origin https://github.com/<owner>/<repo-name>.git
+   ```
+
+Then proceed with the script below — it will handle the first commit and push.
+
 ## Workflow
 
 **ALWAYS use the script** — do NOT run manual git commands:
@@ -56,3 +73,8 @@ When choosing a message, use:
 
 - The script stages **all** changes. If you need selective staging, do it manually before running the script with `--no-stage` flag.
 - If push fails (auth, conflicts), the script will report the error — address it and re-run.
+- If SSH push fails (`Connection reset`, `Permission denied`), switch the remote to HTTPS:
+  ```bash
+  git remote set-url origin https://github.com/<owner>/<repo>.git
+  ```
+  Then re-run the push: `git push -u origin $(git rev-parse --abbrev-ref HEAD)`
