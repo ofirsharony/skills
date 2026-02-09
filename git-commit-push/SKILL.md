@@ -80,6 +80,7 @@ bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh "feat(auth): add l
 | Flag | Effect |
 |------|--------|
 | `--no-stage` | Skip `git add .` — only commit what's already staged |
+| `--no-push` | Commit locally without pushing to remote |
 | `--dry-run` | Show what would be committed/pushed, then exit without changes |
 | `--branch <name>` | Create or switch to a branch before committing |
 
@@ -96,6 +97,9 @@ bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh --no-stage "feat(a
 # Preview what would be committed (only when user asks for dry run)
 bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh --dry-run "refactor: simplify error handling"
 
+# Commit only, don't push (WIP save, batching commits)
+bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh --no-push "wip: checkpoint auth refactor"
+
 # Push to a new feature branch
 bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh --branch feature/notifications "feat: add push notifications"
 ```
@@ -103,13 +107,13 @@ bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh --branch feature/n
 ### What the Script Does
 
 1. Verifies we're in a git repo
-2. Warns if no `.gitignore` is present
+2. **Auto-generates `.gitignore`** if missing (detects project type: Node, Python, Go, Rust, Ruby)
 3. Creates/switches branch if `--branch` is used
 4. Stages all changes (unless `--no-stage`)
 5. Warns about unstaged files when `--no-stage` is used
 6. **Safety check**: auto-unstages suspect files (secrets, IDE config, build artifacts, etc.)
 7. Commits with the provided message
-8. Pushes to the current branch with `-u` flag
+8. Pushes to the current branch with `-u` flag (unless `--no-push`)
 9. Prints a summary of committed files
 
 ### Safety: Auto-Unstaged Files

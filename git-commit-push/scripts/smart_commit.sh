@@ -3,6 +3,7 @@ set -e
 
 # --- Defaults ---
 NO_STAGE=false
+NO_PUSH=false
 DRY_RUN=false
 MESSAGE=""
 BRANCH_NAME=""
@@ -15,6 +16,10 @@ while [[ $# -gt 0 ]]; do
   case $1 in
     --no-stage)
       NO_STAGE=true
+      shift
+      ;;
+    --no-push)
+      NO_PUSH=true
       shift
       ;;
     --dry-run)
@@ -38,10 +43,90 @@ if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
   exit 1
 fi
 
-# --- .gitignore safety check ---
+# --- .gitignore auto-generation ---
 if [ ! -f .gitignore ]; then
-  echo "⚠️  No .gitignore found — risky to stage all files."
-  echo "   Consider creating one before committing."
+  echo "⚠️  No .gitignore found — generating one."
+
+  GITIGNORE_CONTENT="# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+*~
+
+# Secrets
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+secrets.json
+token.json
+
+# Logs
+*.log
+"
+
+  # Detect project type and add specific ignores
+  if [ -f "package.json" ]; then
+    GITIGNORE_CONTENT+="
+# Node
+node_modules/
+dist/
+build/
+.cache/
+coverage/
+"
+  fi
+
+  if [ -f "requirements.txt" ] || [ -f "pyproject.toml" ] || [ -f "setup.py" ] || [ -f "Pipfile" ]; then
+    GITIGNORE_CONTENT+="
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+"
+  fi
+
+  if [ -f "go.mod" ]; then
+    GITIGNORE_CONTENT+="
+# Go
+/vendor/
+"
+  fi
+
+  if [ -f "Cargo.toml" ]; then
+    GITIGNORE_CONTENT+="
+# Rust
+/target/
+"
+  fi
+
+  if [ -f "Gemfile" ]; then
+    GITIGNORE_CONTENT+="
+# Ruby
+/vendor/bundle/
+/.bundle/
+"
+  fi
+
+  echo "$GITIGNORE_CONTENT" > .gitignore
+  echo "   Created .gitignore (detected project files and added relevant patterns)"
   echo ""
 fi
 
@@ -150,12 +235,17 @@ git commit -m "$MESSAGE"
 # --- Get current branch ---
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
-# --- Push with upstream tracking ---
-git push -u origin "$BRANCH"
+# --- Push (unless --no-push) ---
+if [ "$NO_PUSH" = false ]; then
+  git push -u origin "$BRANCH"
 
-# --- Summary ---
-echo ""
-echo "✅ Successfully pushed to $BRANCH"
+  echo ""
+  echo "✅ Successfully committed and pushed to $BRANCH"
+else
+  echo ""
+  echo "✅ Successfully committed to $BRANCH (not pushed)"
+fi
+
 echo ""
 echo "   Commit:  $MESSAGE"
 echo "   Files ($FILE_COUNT):"
