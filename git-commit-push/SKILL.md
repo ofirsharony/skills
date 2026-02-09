@@ -33,30 +33,18 @@ If the directory has no `.git` folder, set one up before running the script:
 
 Then proceed with the script below — it will handle the first commit and push.
 
-## Workflow
+## Commit Message Generation (CRITICAL)
 
-**ALWAYS use the script** — do NOT run manual git commands:
+**NEVER use the default `chore: update code` message.** Before calling the script, ALWAYS:
 
-```bash
-bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh
-```
-
-With a custom message:
-
-```bash
-bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh "feat: add user authentication"
-```
-
-### What the Script Does
-
-1. Checks there are actually changes to commit
-2. Stages all changes (`git add .`)
-3. Commits with the provided message (defaults to `chore: update code`)
-4. Pushes to the current branch with `-u` flag
+1. Run `git diff --cached --stat` (or `git diff --stat` if not yet staged) to understand what changed.
+2. Generate a conventional commit message with type, optional scope, and description:
+   - Format: `type(scope): description` or `type: description`
+   - The scope should reflect the area of the codebase changed (e.g., `auth`, `api`, `ui`, `db`, `config`)
+   - Use a scope when the change is localized to a specific module/area
+   - Omit scope for cross-cutting changes
 
 ### Conventional Commit Prefixes
-
-When choosing a message, use:
 
 | Prefix | Use for |
 |--------|---------|
@@ -69,9 +57,74 @@ When choosing a message, use:
 | `chore:` | Maintenance, deps, config |
 | `ci:` | CI/CD changes |
 
+### Examples
+
+```
+feat(auth): add JWT token refresh flow
+fix(api): handle null response from payment gateway
+refactor(db): extract query builder into separate module
+docs: update README with deployment instructions
+chore(deps): upgrade React to v19
+```
+
+## Workflow
+
+**ALWAYS use the script** — do NOT run manual git commands:
+
+```bash
+bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh "feat(auth): add login endpoint"
+```
+
+### Flags
+
+| Flag | Effect |
+|------|--------|
+| `--no-stage` | Skip `git add .` — only commit what's already staged |
+| `--dry-run` | Show what would be committed/pushed, then exit without changes |
+| `--branch <name>` | Create or switch to a branch before committing |
+
+### Examples
+
+```bash
+# Standard: stage everything, commit, push
+bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh "fix: resolve race condition in worker pool"
+
+# Selective staging: stage manually first, then commit only staged files
+git add src/auth/
+bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh --no-stage "feat(auth): add OAuth2 provider"
+
+# Preview what would be committed (only when user asks for dry run)
+bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh --dry-run "refactor: simplify error handling"
+
+# Push to a new feature branch
+bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh --branch feature/notifications "feat: add push notifications"
+```
+
+### What the Script Does
+
+1. Verifies we're in a git repo
+2. Warns if no `.gitignore` is present
+3. Creates/switches branch if `--branch` is used
+4. Stages all changes (unless `--no-stage`)
+5. Warns about unstaged files when `--no-stage` is used
+6. **Safety check**: auto-unstages suspect files (secrets, IDE config, build artifacts, etc.)
+7. Commits with the provided message
+8. Pushes to the current branch with `-u` flag
+9. Prints a summary of committed files
+
+### Safety: Auto-Unstaged Files
+
+The script automatically detects and unstages files that likely shouldn't be committed:
+
+- **Secrets**: `.env`, `*.pem`, `*.key`, `credentials.json`, `token.json`
+- **IDE config**: `.idea/`, `.vscode/`, `*.iml`
+- **OS junk**: `.DS_Store`, `Thumbs.db`
+- **Build artifacts**: `node_modules/`, `__pycache__/`, `dist/`, `build/`
+
+If any are found, they are unstaged and a warning is printed. Add them to `.gitignore` to suppress future warnings.
+
 ### Important Notes
 
-- The script stages **all** changes. If you need selective staging, do it manually before running the script with `--no-stage` flag.
 - If push fails (auth, conflicts), the script will report the error — address it and re-run.
 - If SSH push fails (`Connection reset`, `Permission denied`), switch the remote to HTTPS:
   ```bash
