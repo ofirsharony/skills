@@ -5,6 +5,8 @@ set -e
 NO_STAGE=false
 NO_PUSH=false
 DRY_RUN=false
+CREATE_PR=false
+PR_LABELS=""
 MESSAGE=""
 BRANCH_NAME=""
 
@@ -25,6 +27,14 @@ while [[ $# -gt 0 ]]; do
     --dry-run)
       DRY_RUN=true
       shift
+      ;;
+    --pr)
+      CREATE_PR=true
+      shift
+      ;;
+    --pr-label)
+      PR_LABELS="$2"
+      shift 2
       ;;
     --branch)
       BRANCH_NAME="$2"
@@ -250,3 +260,17 @@ echo ""
 echo "   Commit:  $MESSAGE"
 echo "   Files ($FILE_COUNT):"
 echo "$COMMITTED_FILES" | sed 's/^/      /'
+
+# --- Create PR if --pr flag was set ---
+if [ "$CREATE_PR" = true ] && [ "$NO_PUSH" = false ]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  PR_ARGS=(--title "$MESSAGE")
+  if [ -n "$PR_LABELS" ]; then
+    PR_ARGS+=(--label "$PR_LABELS")
+  fi
+  echo ""
+  bash "$SCRIPT_DIR/create_pr.sh" "${PR_ARGS[@]}"
+elif [ "$CREATE_PR" = true ] && [ "$NO_PUSH" = true ]; then
+  echo ""
+  echo "⚠️  Skipping PR creation because --no-push was used (branch not pushed to remote)"
+fi
