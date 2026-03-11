@@ -1,11 +1,11 @@
 ---
 name: git-commit-push
-description: Stage, commit, and push git changes with conventional commit messages. Use when user wants to commit and push changes, mentions pushing to remote, or asks to save and push their work. Also activates when user says "push changes", "commit and push", "push this", "push to github", or similar git workflow requests.
+description: Stage, commit, and push git changes with conventional commit messages, and optionally create a GitHub PR. Use when user wants to commit and push changes, mentions pushing to remote, asks to save and push their work, or wants to create a pull request. Also activates when user says "push changes", "commit and push", "push this", "push to github", "create a PR", "open a pull request", or similar git workflow requests.
 ---
 
 # Git Commit & Push Workflow
 
-Stage all changes, create a conventional commit, and push to the remote branch.
+Stage all changes, create a conventional commit, push to the remote branch, and optionally create a GitHub PR.
 
 ## When to Use
 
@@ -15,6 +15,7 @@ Activate when the user:
 - Mentions saving work to remote ("save to github", "push to remote")
 - Completes a feature and wants to share it
 - Says phrases like "let's push this up" or "commit these changes"
+- Wants to create a pull request ("create a PR", "open a PR", "submit a PR")
 
 ## Pre-flight: No Git Repo Yet
 
@@ -83,6 +84,8 @@ bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh "feat(auth): add l
 | `--no-push` | Commit locally without pushing to remote |
 | `--dry-run` | Show what would be committed/pushed, then exit without changes |
 | `--branch <name>` | Create or switch to a branch before committing |
+| `--pr` | Create a GitHub PR after pushing (opens in browser) |
+| `--pr-label <labels>` | Comma-separated labels for the PR (requires `--pr`) |
 
 ### Examples
 
@@ -102,6 +105,15 @@ bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh --no-push "wip: ch
 
 # Push to a new feature branch
 bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh --branch feature/notifications "feat: add push notifications"
+
+# Commit, push, and open a PR (uses commit message as PR title)
+bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh --pr "feat(auth): add OAuth2 login"
+
+# Commit, push, and open a labeled PR
+bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh --pr --pr-label "enhancement,auth" "feat(auth): add OAuth2 login"
+
+# Full workflow: new branch + commit + push + PR
+bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh --branch feature/oauth --pr "feat(auth): add OAuth2 login"
 ```
 
 ### What the Script Does
@@ -115,6 +127,7 @@ bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh --branch feature/n
 7. Commits with the provided message
 8. Pushes to the current branch with `-u` flag (unless `--no-push`)
 9. Prints a summary of committed files
+10. Creates a GitHub PR and opens it in the browser (if `--pr` is used)
 
 ### Safety: Auto-Unstaged Files
 
@@ -126,6 +139,30 @@ The script automatically detects and unstages files that likely shouldn't be com
 - **Build artifacts**: `node_modules/`, `__pycache__/`, `dist/`, `build/`
 
 If any are found, they are unstaged and a warning is printed. Add them to `.gitignore` to suppress future warnings.
+
+### PR Creation Details
+
+When `--pr` is used (or `create_pr.sh` is called directly), the script:
+
+1. Verifies `gh` CLI is installed and authenticated
+2. Checks you're not on the default branch
+3. Detects if a PR already exists for the branch (opens it instead of creating a duplicate)
+4. Uses a temp file for the PR body to avoid shell newline issues
+5. Creates the PR via `gh pr create`
+6. Opens the PR in the browser
+
+You can also call the PR script standalone (e.g., when changes are already pushed):
+
+```bash
+bash ~/.cursor/skills/git-commit-push/scripts/create_pr.sh --title "feat: add login" --body "## Summary\nAdded login flow" --label "enhancement"
+```
+
+| Flag | Effect |
+|------|--------|
+| `--title <text>` | PR title (defaults to last commit message) |
+| `--body <text>` | PR body (supports `\n` for newlines) |
+| `--label <labels>` | Comma-separated labels |
+| `--no-browser` | Skip opening the PR in the browser |
 
 ### Important Notes
 
