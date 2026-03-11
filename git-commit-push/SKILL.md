@@ -17,6 +17,15 @@ Activate when the user:
 - Says phrases like "let's push this up" or "commit these changes"
 - Wants to create a pull request ("create a PR", "open a PR", "submit a PR")
 
+## Pre-push Safety Checks (CRITICAL)
+
+Before running the script, ALWAYS perform these checks:
+
+1. **Verify the current branch**: Run `git branch --show-current` and confirm you are on the expected branch.
+   - **NEVER push directly to `main` or `master`** unless the user explicitly says "push to master/main".
+   - If you are on `main`/`master` and the user hasn't explicitly asked to push there, STOP and ask the user which branch to push to.
+2. **Only push when the user explicitly asks**: Do NOT combine code edits with automatic pushes. Making a code change and pushing it should always be two separate user-initiated actions.
+
 ## Pre-flight: No Git Repo Yet
 
 If the directory has no `.git` folder, set one up before running the script:
