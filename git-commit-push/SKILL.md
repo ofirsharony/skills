@@ -17,14 +17,15 @@ Activate when the user:
 - Says phrases like "let's push this up" or "commit these changes"
 - Wants to create a pull request ("create a PR", "open a PR", "submit a PR")
 
-## Pre-push Safety Checks (CRITICAL)
+## Safety Checks (CRITICAL)
 
 Before running the script, ALWAYS perform these checks:
 
-1. **Verify the current branch**: Run `git branch --show-current` and confirm you are on the expected branch.
+1. **Only commit/push when the user explicitly asks**: Do NOT commit or push as a side effect of other work (e.g., editing code, testing, fixing a bug). Committing and pushing must always be a separate, user-initiated action.
+2. **NEVER push unless the user EXPLICITLY says to push**: Words like "commit", "save", "move changes to branch" do NOT mean push. Only push when the user says "push", "push it", "push to remote", "push to github", or similar. **When in doubt, use `--no-push` and ask.** This is the most important rule.
+3. **Verify the current branch**: Run `git branch --show-current` and confirm you are on the expected branch.
    - **NEVER push directly to `main` or `master`** unless the user explicitly says "push to master/main".
    - If you are on `main`/`master` and the user hasn't explicitly asked to push there, STOP and ask the user which branch to push to.
-2. **Only push when the user explicitly asks**: Do NOT combine code edits with automatic pushes. Making a code change and pushing it should always be two separate user-initiated actions.
 
 ## Pre-flight: No Git Repo Yet
 
@@ -79,9 +80,15 @@ chore(deps): upgrade React to v19
 
 ## Workflow
 
-**ALWAYS use the script** — do NOT run manual git commands:
+**ALWAYS use the script** — do NOT run manual git commands.
+
+**Default to `--no-push`**. Only omit `--no-push` when the user EXPLICITLY asks to push.
 
 ```bash
+# Default: commit only, do NOT push
+bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh --no-push "feat(auth): add login endpoint"
+
+# Only when user explicitly says "push":
 bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh "feat(auth): add login endpoint"
 ```
 
@@ -99,23 +106,23 @@ bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh "feat(auth): add l
 ### Examples
 
 ```bash
-# Standard: stage everything, commit, push
-bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh "fix: resolve race condition in worker pool"
+# Standard: stage everything, commit (NO push — this is the default)
+bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh --no-push "fix: resolve race condition in worker pool"
 
 # Selective staging: stage manually first, then commit only staged files
 git add src/auth/
-bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh --no-stage "feat(auth): add OAuth2 provider"
+bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh --no-stage --no-push "feat(auth): add OAuth2 provider"
 
 # Preview what would be committed (only when user asks for dry run)
 bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh --dry-run "refactor: simplify error handling"
 
-# Commit only, don't push (WIP save, batching commits)
-bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh --no-push "wip: checkpoint auth refactor"
+# Stage everything, commit AND push (ONLY when user explicitly asks to push)
+bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh "feat: add push notifications"
 
-# Push to a new feature branch
+# Push to a new feature branch (ONLY when user explicitly asks to push)
 bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh --branch feature/notifications "feat: add push notifications"
 
-# Commit, push, and open a PR (uses commit message as PR title)
+# Commit, push, and open a PR (ONLY when user explicitly asks for PR)
 bash ~/.cursor/skills/git-commit-push/scripts/smart_commit.sh --pr "feat(auth): add OAuth2 login"
 
 # Commit, push, and open a labeled PR
